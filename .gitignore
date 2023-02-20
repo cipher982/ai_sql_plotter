@@ -3,3 +3,6 @@ data/
 .env
 chroma_logs.log
 scratch.ipynb
+chain.code-workspace
+__pycache__
+.ipynb_checkpoints
