@@ -1,0 +1,5 @@
+data/
+.chroma
+.env
+chroma_logs.log
+scratch.ipynb
