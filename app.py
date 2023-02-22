@@ -1,16 +1,24 @@
 import gradio as gr
 from langchain import OpenAI, SQLDatabase, SQLDatabaseChain
 from langchain.prompts.prompt import PromptTemplate
+from langchain.chains import LLMChain
+from langchain.utilities import PythonREPL
 
-from templates.templates import _TEMPLATE_SQL
+from templates.templates import TEMPLATE_SQL, TEMPLATE_PLOT
 from utils import load_sf_account
 
 PROMPT_SQL = PromptTemplate(
-    input_variables=["input", "table_info", "dialect"], template=_TEMPLATE_SQL
+    input_variables=["input", "table_info", "dialect"],
+    template=TEMPLATE_SQL,
+)
+
+PROMPT_CODE = PromptTemplate(
+    input_variables=["input"],
+    template=TEMPLATE_PLOT,
 )
 
 
-def run_query(uri, openai_key, table_name, query):
+def run_sql_query(uri, openai_key, table_name, query):
     if isinstance(uri, list):
         uri = uri[0]
     if "textbox" not in uri:
@@ -31,6 +39,18 @@ def run_query(uri, openai_key, table_name, query):
         return None
 
 
+def run_py_query(openai_key, query):
+    llm = OpenAI(temperature=0, openai_api_key=openai_key)
+    chain = LLMChain(llm=llm, prompt=PROMPT_CODE)
+    out = chain.run(query)
+    return out
+
+
+def eval_py(code):
+    python_repl = PythonREPL()
+    return python_repl.run(code)
+
+
 with gr.Blocks() as demo:
     # img = gr.Image("static/title.svg").style(height="8", width="12")
     gr.Markdown("# Querying SQL with AI")
@@ -46,17 +66,39 @@ with gr.Blocks() as demo:
             ]
         load_btn.click(fn=load_sf_account, outputs=outputs)
 
+        # Build the query
         sf_table = gr.Textbox(label="Table name to query", value="conversions_demo")
         sf_query = gr.Textbox(label="What is your question?")
         answer = gr.Textbox(label="answer")
 
-        query_button = gr.Button("Query Button")
+        query_button = gr.Button("Run Query")
         query_button.click(
-            run_query,
+            run_sql_query,
             inputs=[sf_uri, openai_key, sf_table, sf_query],
             outputs=answer,
         )
 
+        # Build the plot code
+        plot_query = gr.Textbox(label="plot Query")
+        plot_button = gr.Button("Build Plotting code")
+        plot_button.click(
+            run_py_query,
+            inputs=[openai_key, answer],
+            outputs=plot_query,
+        )
+
+        # Plot the result
+        gr.Markdown("## Plot")
+        plot = gr.Plot()
+
+        plot_button_2 = gr.Button("Plot!")
+        plot_button_2.click(
+            eval_py,
+            inputs=[plot_query],
+            outputs=plot,
+        )
+
+        #
         # TODO
         # sf_table = gr.Textbox(label="Table name to query")
         # sf_query = gr.Textbox(label="What is your question?")
