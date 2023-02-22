@@ -27,6 +27,7 @@ def load_sf_account() -> tuple:
     env_vars = {env_var: os.getenv(env_var) for env_var in required_env_vars}
 
     # Or get details from .env file
+    # TODO: would love to use dotenv here, but having issues with py3.11
     with open(".env", "r") as f:
         for line in f:
             for env_var in required_env_vars:
