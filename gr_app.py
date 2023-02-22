@@ -20,7 +20,7 @@ PROMPT_CODE = PromptTemplate(
 DEFAULT_TABLE = "conversions_demo"
 
 
-def run_sql_query(uri, openai_key, table_name, query):
+def run_sql_query(query):
     print("Loading database chain. . .")
     db_chain = SQLDatabaseChain(
         llm=llm,
@@ -71,7 +71,7 @@ with gr.Blocks() as demo:
     query_button = gr.Button("Run Query")
     query_button.click(
         run_sql_query,
-        inputs=[sf_uri, sf_table, sf_query],
+        inputs=[sf_query],
         outputs=answer,
     )
 
