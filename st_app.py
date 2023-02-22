@@ -1,13 +1,8 @@
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-
-# import seaborn as sns
-# import sqlite3
 from langchain import OpenAI, SQLDatabase, SQLDatabaseChain
 from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
+import streamlit as st
 
 from templates.templates import TEMPLATE_SQL, TEMPLATE_PLOT
 from utils import build_connections
@@ -69,7 +64,6 @@ def main():
     #################
     st.markdown("## Query")
 
-    sf_table = st.text_input("Table name to query", "conversions_demo")
     sf_query = st.text_input("What is your question?")
     query_button = st.button("Run Query")
 
