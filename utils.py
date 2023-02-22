@@ -5,9 +5,9 @@ class MissingEnvironmentVariableError(Exception):
     pass
 
 
-def load_sf_account() -> tuple:
+def build_connections() -> tuple:
     """
-    Loads Snowflake connection parameters from environment variables or a `.env` file.
+    Loads Snowflake and OpenAI connection parameters from environment variables or a `.env` file.
 
     Returns:
         A tuple in the form of (uri, openai_key).
