@@ -7,7 +7,7 @@ max-line-length = 120
   # E501 - flake8 -- line length too long, actually handled by black
 extend-ignore =
   # E W - flake8 PEP style check
-    E203,E402,E501,W503,  # whitespace, import, line length, binary operator line breaks
+    E203,E402,E501,W503,E266 # whitespace, import, line length, binary operator line breaks
   # S - flake8-bandit safety check
     S101,S311,S105,  # assert removed in bytecode, pRNG not secure, hardcoded password
   # ANN - flake8-annotations type annotation check
