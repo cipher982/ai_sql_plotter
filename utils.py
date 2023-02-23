@@ -1,16 +1,23 @@
 import os
 
+from langchain import SQLDatabase
+import streamlit as st
+
+
+DEFAULT_TABLE = "conversions_demo"
+
 
 class MissingEnvironmentVariableError(Exception):
     pass
 
 
-def build_connections() -> tuple:
+@st.cache_data
+def build_snowflake_uri() -> str:
     """
-    Loads Snowflake and OpenAI connection parameters from environment variables or a `.env` file.
+    Creates the Snowflake URI from environment variables or a `.env` file.
 
     Returns:
-        A tuple in the form of (uri, openai_key).
+        A string containing the Snowflake connection URI.
     Raises:
         MissingEnvironmentVariableError: If any of the required environment variables are missing or empty.
     """
@@ -21,7 +28,6 @@ def build_connections() -> tuple:
         "SNOWFLAKE_DATABASE",
         "SNOWFLAKE_SCHEMA",
         "SNOWFLAKE_WAREHOUSE",
-        "OPENAI_API_KEY",
     ]
 
     env_vars = {env_var: os.getenv(env_var) for env_var in required_env_vars}
@@ -39,4 +45,34 @@ def build_connections() -> tuple:
             raise MissingEnvironmentVariableError(f"{env_var} is missing")
 
     uri = f"snowflake://{env_vars['SNOWFLAKE_USER']}:{env_vars['SNOWFLAKE_PASSWORD']}@{env_vars['SNOWFLAKE_ACCOUNT']}/{env_vars['SNOWFLAKE_DATABASE']}/?warehouse={env_vars['SNOWFLAKE_WAREHOUSE']}&schema={env_vars['SNOWFLAKE_SCHEMA']}"
-    return (uri, env_vars["OPENAI_API_KEY"])
+    return uri
+
+
+@st.cache_data
+def get_openai_key():
+    var = "OPENAI_API_KEY"
+    with open(".env", "r") as f:
+        for line in f:
+            if line.startswith(var):
+                key = line.split("=")[1].strip()
+
+    if not key:
+        raise Exception(f"Missing {var} environment variable")
+
+    return key
+
+
+@st.cache_resource
+def create_db_connection(
+    uri: str, include_tables: list = [DEFAULT_TABLE]
+) -> SQLDatabase:
+    """
+    Creates a Snowflake database connection from a URI.
+
+    Args:
+        uri: A string containing the Snowflake URI.
+    Returns:
+        A `Database` object.
+    """
+    db = SQLDatabase.from_uri(uri, include_tables=include_tables)
+    return db

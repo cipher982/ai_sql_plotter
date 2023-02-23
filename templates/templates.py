@@ -21,6 +21,7 @@ Extra information:
 - be sure to use quotes around strings, such as 'citibank' or INTERVAL '2 MONTH'
 - try to avoid nested aggregrations
 - use temp tables, instead of subqueries or nested queries
+- do not return too much data, if you are asked for the top 10, only return the top 10
 
 Begin!
 
@@ -31,15 +32,18 @@ TEMPLATE_PLOT = """Given a set of input data, plot the data using the following 
 
 Input: "[(12179, datetime.datetime(2023, 1, 16, 0, 0, tzinfo=<UTC>)), (54233, datetime.datetime(2023, 1, 23, 0, 0, tzinfo=<UTC>)), (57980, datetime.datetime(2023, 1, 30, 0, 0, tzinfo=<UTC>)), (53337, datetime.datetime(2023, 2, 6, 0, 0, tzinfo=<UTC>)), (49756, datetime.datetime(2023, 2, 13, 0, 0, tzinfo=<UTC>))]'
 Answer: "import matplotlib.pyplot as plt
+import datetime
 
-data = [(12179, datetime.datetime(2023, 1, 16, 0, 0, tzinfo=<UTC>)), 
-        (54233, datetime.datetime(2023, 1, 23, 0, 0, tzinfo=<UTC>)), 
-        (57980, datetime.datetime(2023, 1, 30, 0, 0, tzinfo=<UTC>)), 
-        (53337, datetime.datetime(2023, 2, 6, 0, 0, tzinfo=<UTC>)), 
-        (49756, datetime.datetime(2023, 2, 13, 0, 0, tzinfo=<UTC>))]
+data = [(12179, datetime.datetime(2023, 1, 16, 0, 0)),
+        (54233, datetime.datetime(2023, 1, 23, 0, 0)),
+        (57980, datetime.datetime(2023, 1, 30, 0, 0)),
+        (53337, datetime.datetime(2023, 2, 6, 0, 0)),
+        (49756, datetime.datetime(2023, 2, 13, 0, 0))]
 
 values = [d[0] for d in data]
 dates = [d[1] for d in data]
+
+plt.figure(figsize=(7, 3))
 
 plt.plot(dates, values)
 
@@ -49,6 +53,13 @@ plt.ylabel('Value')
 
 plt.show()
 "
+
+Important notes:
+- This must be valid python code
+- try to use matplotlib for plotting
+- do not use any libraries that are not already installed in the environment
+- keep the code as simple as possible
+- try and use plt.figure(figsize=(7, 3)) to not make the plot too big
 
 begin!
 
