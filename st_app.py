@@ -46,11 +46,12 @@ def run_py_query(query):
         verbose=True,
     )
     out = py_chain.run(query)
+    out = out.strip("'").strip().strip('"')
+    print(out)
 
     # Run code
     python_repl = PythonREPL()
-    out = python_repl.run(out)
-    return out
+    return python_repl.run(out)
 
 
 # Grab connection details
@@ -71,27 +72,38 @@ def main():
     st.image("./static/logoPrimary.png")
     st.title("ZMP AI SQL Demo")
 
-    #################
-    ### SQL Query ###
-    #################
+    #############
+    ### Query ###
+    #############
     st.markdown("## Query")
 
-    sf_query = st.text_input("What is your question?")
-    query_button = st.button("Run Query")
+    # create a drop down menu with pre-defined queries
+    defined_query = st.selectbox(
+        "Select a pre-defined query",
+        [
+            "What are the weekly conversion numbers for the past 2 months?",
+            "What are the names and total numbers for the top 5 resources?",
+            "What are the top 10 dmas by conversion counts?",
+            "What is the breakdown of return users vs new users?",
+        ],
+    )
+    go_button_1 = st.button("Go")
 
-    if query_button:
-        answer = run_sql_query(sf_query)
-        st.write(answer)
+    open_query = st.text_input("Or, enter a custom query")
+    go_button_2 = st.button("Go ")
 
-    ####################
-    ### Python Query ###
-    ####################
+    ############
+    ### PLOT ###
+    ############
     st.markdown("## Plot")
+    if go_button_1:
+        answer = run_sql_query(defined_query)
+        st.write(answer)
+        fig = run_py_query(answer)
+        st.pyplot(fig)
 
-    # Take SQL results and plot with Python
-    plot_button = st.button("Plot!")
-    if plot_button:
-        answer = run_sql_query(sf_query)
+    if go_button_2:
+        answer = run_sql_query(open_query)
         st.write(answer)
         fig = run_py_query(answer)
         st.pyplot(fig)

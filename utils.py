@@ -64,7 +64,8 @@ def get_openai_key():
 
 @st.cache_resource
 def create_db_connection(
-    uri: str, include_tables: list = [DEFAULT_TABLE]
+    uri: str,
+    include_tables: list = [DEFAULT_TABLE],
 ) -> SQLDatabase:
     """
     Creates a Snowflake database connection from a URI.

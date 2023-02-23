@@ -22,6 +22,7 @@ Extra information:
 - try to avoid nested aggregrations
 - use temp tables, instead of subqueries or nested queries
 - do not return too much data, if you are asked for the top 10, only return the top 10
+- for the final answer, be sure to include numeric data in the answer, such as "The top 2 dmas by conversion counts are: 1. New York (2045), 2. Los Angeles (1533)"
 
 Begin!
 
@@ -30,26 +31,32 @@ Question: {input}"""
 
 TEMPLATE_PLOT = """Given a set of input data, plot the data using the following example as a guide:
 
-Input: "[(12179, datetime.datetime(2023, 1, 16, 0, 0, tzinfo=<UTC>)), (54233, datetime.datetime(2023, 1, 23, 0, 0, tzinfo=<UTC>)), (57980, datetime.datetime(2023, 1, 30, 0, 0, tzinfo=<UTC>)), (53337, datetime.datetime(2023, 2, 6, 0, 0, tzinfo=<UTC>)), (49756, datetime.datetime(2023, 2, 13, 0, 0, tzinfo=<UTC>))]'
+Input: "The weekly conversion numbers for the past 2 months are 4003, 8678, 9073, 10691, 9807, 9875, 10598, 11457, 7957, and 2239."
 Answer: "import matplotlib.pyplot as plt
-import datetime
 
-data = [(12179, datetime.datetime(2023, 1, 16, 0, 0)),
-        (54233, datetime.datetime(2023, 1, 23, 0, 0)),
-        (57980, datetime.datetime(2023, 1, 30, 0, 0)),
-        (53337, datetime.datetime(2023, 2, 6, 0, 0)),
-        (49756, datetime.datetime(2023, 2, 13, 0, 0))]
-
-values = [d[0] for d in data]
-dates = [d[1] for d in data]
+data = [4003, 8678, 9073, 10691, 9807, 9875, 10598, 11457, 7957, 2239]
 
 plt.figure(figsize=(7, 3))
+plt.plot(data)
 
-plt.plot(dates, values)
+plt.title('Weekly Conversion Numbers')
+plt.xlabel('Week')
+plt.ylabel('Number of Conversions')
 
-plt.title('Data Plot')
-plt.xlabel('Date')
-plt.ylabel('Value')
+plt.show()
+"
+
+Input: "42118 new users and 28398 return users."
+Answer: "import matplotlib.pyplot as plt
+
+new_users = 42118
+return_users = 28398
+
+plt.figure(figsize=(7, 3))
+plt.bar(['New Users', 'Return Users'], [new_users, return_users])
+
+plt.title('New vs Return Users')
+plt.ylabel('Number of Users')
 
 plt.show()
 "
