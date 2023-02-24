@@ -27,12 +27,7 @@ DEFAULT_TABLE = "conversions_demo"
 
 
 @st.cache_data
-def run_sql_query(
-    _db: SQLDatabase,
-    _llm: OpenAI,
-    _prompt: PromptTemplate,
-    query: str,
-) -> Any:
+def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query: str) -> Any:
     """
     Takes in a natural language question, uses an LLM to parse the question to a SQL
     query, and runs the SQL query on the database.
@@ -50,9 +45,7 @@ def run_sql_query(
         Exception: If the API call to the OpenAI Language Model fails.
     """
     try:
-        db_chain = SQLDatabaseChain(
-            llm=_llm, database=_db, prompt=_prompt, verbose=True
-        )
+        db_chain = SQLDatabaseChain(llm=_llm, database=_db, prompt=_prompt, verbose=True)
         out = db_chain.run(query)
         return out
 
@@ -91,10 +84,28 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, query: str) -> Any:
 
 
 def start(db, llm, sql_prompt, py_prompt, query):
+    """
+    Main function for the Streamlit app. Combines the functions run_sql_query and run_py_query,
+    and displays the result below.
+
+    Args:
+        db: A langchain SQLDatabase object representing the database to run the query on.
+        llm: An OpenAI object containing the API key and other parameters for the OpenAI Language Model.
+        sql_prompt: A PromptTemplate object representing the prompt to use for the SQL query.
+        py_prompt: A PromptTemplate object representing the prompt to use for the Python code.
+        query: A string containing the question to answer.
+
+    Returns:
+        None
+    """
     answer = run_sql_query(db, llm, sql_prompt, query)
     st.write(answer)
     fig = run_py_query(llm, py_prompt, answer)
-    st.pyplot(fig)
+
+    try:
+        st.pyplot(fig)
+    except TypeError as e:
+        st.write("Error displaying plot, try a different question: \n" + str(e))
 
 
 # Grab connection details
@@ -112,14 +123,16 @@ db = create_db_connection(sf_uri)
 
 # Streamlit app
 def main():
+    """
+    Streamlit app for the ZMP AI SQL Demo. Allows users to enter a natural language
+    question, which is parsed to a SQL query, run on the database, and parsed to
+    Python code, which is then run in a Python REPL. The result is a plot.
+    """
+
     st.image("./static/logoPrimary.png")
     st.title("ZMP AI SQL Demo")
 
-    #############
-    ### Query ###
-    #############
     st.markdown("## Query")
-
     # create a drop down menu with pre-defined queries
     defined_query = st.selectbox(
         "Select a pre-defined query",
@@ -135,11 +148,7 @@ def main():
     open_query = st.text_input("Or, enter a custom query")
     go_button_2 = st.button("Go ")
 
-    ############
-    ### PLOT ###
-    ############
     st.markdown("## Plot")
-
     if go_button_1:
         start(db, llm, PROMPT_SQL, PROMPT_CODE, defined_query)
 
