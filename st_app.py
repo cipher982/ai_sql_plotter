@@ -1,4 +1,6 @@
-from langchain import OpenAI, SQLDatabaseChain
+from typing import Any
+
+from langchain import OpenAI, SQLDatabaseChain, SQLDatabase
 from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
@@ -25,39 +27,73 @@ DEFAULT_TABLE = "conversions_demo"
 
 
 @st.cache_data
-def run_sql_query(query):
-    print("Loading database chain. . .")
-    db_chain = SQLDatabaseChain(
-        llm=llm,
-        database=db,
-        prompt=PROMPT_SQL,
-        verbose=True,
-    )
-    print("Loaded database chain")
-    out = db_chain.run(query)
-    return out
+def run_sql_query(
+    _db: SQLDatabase,
+    _llm: OpenAI,
+    _prompt: PromptTemplate,
+    query: str,
+) -> Any:
+    """
+    Takes in a natural language question, uses an LLM to parse the question to a SQL
+    query, and runs the SQL query on the database.
+
+    Args:
+        _db: A langchain SQLDatabase object representing the database to run the query on.
+        _llm: An OpenAI object containing the API key and other parameters for the OpenAI Language Model.
+        _prompt: A PromptTemplate object representing the prompt to use for the query.
+        query: A string containing the question to answer.
+
+    Returns:
+        The result of running the SQL query.
+
+    Raises:
+        Exception: If the API call to the OpenAI Language Model fails.
+    """
+    try:
+        db_chain = SQLDatabaseChain(
+            llm=_llm, database=_db, prompt=_prompt, verbose=True
+        )
+        out = db_chain.run(query)
+        return out
+
+    except Exception as e:
+        raise Exception("OpenAI API call failed with error: " + str(e))
 
 
-def run_py_query(query):
-    # Build code
-    py_chain = LLMChain(
-        llm=llm,
-        prompt=PROMPT_CODE,
-        verbose=True,
-    )
-    out = py_chain.run(query)
-    out = out.strip("'").strip().strip('"')
-    print(out)
+def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, query: str) -> Any:
+    """
+    Takes in the result of a SQL query, uses an LLM to parse the result to Python code,
+    and runs the Python code in a Python REPL.
 
-    # Run code
+    Args:
+        _llm: An OpenAI object containing the API key and other parameters for the OpenAI Language Model.
+        _prompt: A PromptTemplate object containing the prompt to use for the query.
+        query: A string containing the result of the SQL query.
+
+    Returns:
+        The result of running the Python code.
+
+    Raises:
+        Exception: If the API call to the OpenAI Language Model fails.
+    """
+    # Initialize LLMChain
+    py_chain = LLMChain(llm=_llm, prompt=_prompt, verbose=True)
+
+    # Run query using OpenAI API
+    try:
+        out = py_chain.run(query).strip("'").strip().strip('"')
+    except Exception as e:
+        raise Exception("OpenAI API call failed with error: " + str(e))
+
+    # Run the output code in Python REPL and return the result
     python_repl = PythonREPL()
     return python_repl.run(out)
 
 
-def start(query):
-    answer = run_sql_query(query)
+def start(db, llm, sql_prompt, py_prompt, query):
+    answer = run_sql_query(db, llm, sql_prompt, query)
     st.write(answer)
-    fig = run_py_query(answer)
+    fig = run_py_query(llm, py_prompt, answer)
     st.pyplot(fig)
 
 
@@ -105,10 +141,10 @@ def main():
     st.markdown("## Plot")
 
     if go_button_1:
-        start(defined_query)
+        start(db, llm, PROMPT_SQL, PROMPT_CODE, defined_query)
 
     if go_button_2:
-        start(open_query)
+        start(db, llm, PROMPT_SQL, PROMPT_CODE, open_query)
 
 
 if __name__ == "__main__":

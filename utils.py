@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from langchain import SQLDatabase
 import streamlit as st
@@ -48,16 +49,17 @@ def build_snowflake_uri() -> str:
     return uri
 
 
-@st.cache_data
-def get_openai_key():
-    var = "OPENAI_API_KEY"
-    with open(".env", "r") as f:
-        for line in f:
-            if line.startswith(var):
-                key = line.split("=")[1].strip()
+def get_openai_key() -> Optional[str]:
+    """
+    Retrieves the OpenAI API key from the environment variable OPENAI_API_KEY.
+
+    Returns:
+        The OpenAI API key as a string, or None if the environment variable is not set.
+    """
+    key = os.environ.get("OPENAI_API_KEY")
 
     if not key:
-        raise Exception(f"Missing {var} environment variable")
+        raise Exception("Missing OPENAI_API_KEY environment variable")
 
     return key
 
