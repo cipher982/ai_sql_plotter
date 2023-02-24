@@ -54,6 +54,13 @@ def run_py_query(query):
     return python_repl.run(out)
 
 
+def start(query):
+    answer = run_sql_query(query)
+    st.write(answer)
+    fig = run_py_query(answer)
+    st.pyplot(fig)
+
+
 # Grab connection details
 sf_uri = build_snowflake_uri()
 
@@ -96,17 +103,12 @@ def main():
     ### PLOT ###
     ############
     st.markdown("## Plot")
+
     if go_button_1:
-        answer = run_sql_query(defined_query)
-        st.write(answer)
-        fig = run_py_query(answer)
-        st.pyplot(fig)
+        start(defined_query)
 
     if go_button_2:
-        answer = run_sql_query(open_query)
-        st.write(answer)
-        fig = run_py_query(answer)
-        st.pyplot(fig)
+        start(open_query)
 
 
 if __name__ == "__main__":
