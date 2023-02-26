@@ -33,14 +33,6 @@ def build_snowflake_uri() -> str:
 
     env_vars = {env_var: os.getenv(env_var) for env_var in required_env_vars}
 
-    # Or get details from .env file
-    # TODO: would love to use dotenv here, but having issues with py3.11
-    with open(".env", "r") as f:
-        for line in f:
-            for env_var in required_env_vars:
-                if line.startswith(env_var):
-                    env_vars[env_var] = line.split("=")[1].strip()
-
     for env_var, var_name in zip(required_env_vars, env_vars.keys()):
         if not env_vars[env_var]:
             raise MissingEnvironmentVariableError(f"{env_var} is missing")
