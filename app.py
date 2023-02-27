@@ -53,7 +53,8 @@ def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query
         raise Exception("OpenAI API call failed with error: " + str(e))
 
 
-def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, query: str) -> Any:
+@st.cache_data
+def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, answer: str, query: str) -> Any:
     """
     Takes in the result of a SQL query, uses an LLM to parse the result to Python code,
     and runs the Python code in a Python REPL.
@@ -61,7 +62,8 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, query: str) -> Any:
     Args:
         _llm: An OpenAI object containing the API key and other parameters for the OpenAI Language Model.
         _prompt: A PromptTemplate object containing the prompt to use for the query.
-        query: A string containing the result of the SQL query.
+        answer: A string containing the result of the SQL query.
+        query: A string containing the original SQL query, used for caching purposes only.
 
     Returns:
         The result of running the Python code.
@@ -100,7 +102,7 @@ def start(db, llm, sql_prompt, py_prompt, query):
     """
     answer = run_sql_query(db, llm, sql_prompt, query)
     st.write(answer)
-    fig = run_py_query(llm, py_prompt, answer)
+    fig = run_py_query(llm, py_prompt, answer, query)
 
     try:
         st.pyplot(fig)
