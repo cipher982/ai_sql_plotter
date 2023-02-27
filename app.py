@@ -6,17 +6,12 @@ from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
 import streamlit as st
 
-# from templates.templates import TEMPLATE_SQL
 from templates.python import few_shot_python_template
 from templates.sql import sql_prompt
 from utils import build_snowflake_uri, get_openai_key, create_db_connection
 
 
 st.set_option("deprecation.showPyplotGlobalUse", False)
-
-
-
-
 
 DEFAULT_TABLE = "conversions_demo"
 
