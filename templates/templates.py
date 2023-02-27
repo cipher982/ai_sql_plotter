@@ -13,7 +13,7 @@ Only use the following tables:
 If someone asks for the table events, they really mean the crm.events.recs_events table.
 
 Important: all the SQL queries should be run using ONLY Snowflake specific syntax and commands.
-Please make sure all SQL code is specific to Snowflake, and not generic SQL.
+Please make sure all SQL code is specific to Snowflake, and not generic SQL. Only use select statements, do not use create, insert, update, delete, etc.
 
 Extra information:
 - bsin - user id
