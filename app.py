@@ -6,22 +6,17 @@ from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
 import streamlit as st
 
-from templates.templates import TEMPLATE_SQL, TEMPLATE_PLOT
+# from templates.templates import TEMPLATE_SQL
+from templates.python import few_shot_python_template
+from templates.sql import sql_prompt
 from utils import build_snowflake_uri, get_openai_key, create_db_connection
 
 
 st.set_option("deprecation.showPyplotGlobalUse", False)
 
 
-PROMPT_SQL = PromptTemplate(
-    input_variables=["input", "table_info", "dialect"],
-    template=TEMPLATE_SQL,
-)
 
-PROMPT_CODE = PromptTemplate(
-    input_variables=["input"],
-    template=TEMPLATE_PLOT,
-)
+
 
 DEFAULT_TABLE = "conversions_demo"
 
@@ -54,7 +49,7 @@ def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query
 
 
 @st.cache_data
-def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, answer: str, query: str) -> Any:
+def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, sql_query: str, sql_answer: str) -> Any:
     """
     Takes in the result of a SQL query, uses an LLM to parse the result to Python code,
     and runs the Python code in a Python REPL.
@@ -62,8 +57,8 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, answer: str, query: str)
     Args:
         _llm: An OpenAI object containing the API key and other parameters for the OpenAI Language Model.
         _prompt: A PromptTemplate object containing the prompt to use for the query.
-        answer: A string containing the result of the SQL query.
-        query: A string containing the original SQL query, used for caching purposes only.
+        sql_query: A string containing the original SQL query that was run.
+        sql_answer: A string containing the result of running the SQL query. To be used as input to the LLM.
 
     Returns:
         The result of running the Python code.
@@ -76,9 +71,13 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, answer: str, query: str)
 
     # Run query using OpenAI API
     try:
-        out = py_chain.run(query).strip("'").strip().strip('"')
+        out = py_chain.run(sql_answer).strip("'").strip().strip('"')
     except Exception as e:
         raise Exception("OpenAI API call failed with error: " + str(e))
+
+    # Show the Python code that was generated
+    st.write("### Code")
+    st.code(out)
 
     # Run the output code in Python REPL and return the result
     python_repl = PythonREPL()
@@ -102,7 +101,8 @@ def start(db, llm, sql_prompt, py_prompt, query):
     """
     answer = run_sql_query(db, llm, sql_prompt, query)
     st.write(answer)
-    fig = run_py_query(llm, py_prompt, answer, query)
+    fig = run_py_query(llm, py_prompt, query, answer)
+    st.write("### Plot")
 
     try:
         st.pyplot(fig)
@@ -150,12 +150,12 @@ def main():
     open_query = st.text_input("Or, enter a custom query")
     go_button_2 = st.button("Go ")
 
-    st.markdown("## Plot")
+    st.markdown("## Answer")
     if go_button_1:
-        start(db, llm, PROMPT_SQL, PROMPT_CODE, defined_query)
+        start(db, llm, sql_prompt, few_shot_python_template, defined_query)
 
     if go_button_2:
-        start(db, llm, PROMPT_SQL, PROMPT_CODE, open_query)
+        start(db, llm, sql_prompt, few_shot_python_template, open_query)
 
 
 if __name__ == "__main__":
