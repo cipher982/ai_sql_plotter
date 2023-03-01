@@ -1,22 +1,24 @@
 from typing import Any
 
-from langchain import OpenAI, SQLDatabaseChain, SQLDatabase
+from langchain import SQLDatabaseChain, SQLDatabase
+from langchain.llms import OpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
 import streamlit as st
 
-from templates.python import few_shot_python_template
+from templates.fix_python import fix_code_prompt
+from templates.python import python_template
 from templates.sql import sql_prompt
 from utils import build_snowflake_uri, get_openai_key, create_db_connection
 
 
 st.set_option("deprecation.showPyplotGlobalUse", False)
 
-DEFAULT_TABLE = "conversions_demo"
+DEFAULT_TABLE = "citi_conversions_demo"
 
 
-@st.cache_data
+# @st.cache_data
 def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query: str) -> Any:
     """
     Takes in a natural language question, uses an LLM to parse the question to a SQL
@@ -35,15 +37,20 @@ def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query
         Exception: If the API call to the OpenAI Language Model fails.
     """
     try:
-        db_chain = SQLDatabaseChain(llm=_llm, database=_db, prompt=_prompt, verbose=True)
-        out = db_chain.run(query)
+        db_chain = SQLDatabaseChain(
+            llm=_llm,
+            database=_db,
+            prompt=_prompt,
+            verbose=True,
+            return_intermediate_steps=True,
+        )
+        out = db_chain(query)
         return out
-
     except Exception as e:
         raise Exception("OpenAI API call failed with error: " + str(e))
 
 
-@st.cache_data
+# @st.cache_data
 def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, sql_query: str, sql_answer: str) -> Any:
     """
     Takes in the result of a SQL query, uses an LLM to parse the result to Python code,
@@ -64,19 +71,32 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, sql_query: str, sql_answ
     # Initialize LLMChain
     py_chain = LLMChain(llm=_llm, prompt=_prompt, verbose=True)
 
-    # Run query using OpenAI API
+    # Use LLMChain to generate Python code
     try:
-        out = py_chain.run(sql_answer).strip("'").strip().strip('"')
+        plotting_code = py_chain.run(sql_answer).strip("'").strip().strip('"')
     except Exception as e:
         raise Exception("OpenAI API call failed with error: " + str(e))
 
     # Show the Python code that was generated
     st.write("### Code")
-    st.code(out)
+    st.code(plotting_code)
 
-    # Run the output code in Python REPL and return the result
-    python_repl = PythonREPL()
-    return python_repl.run(out)
+    try:
+        # Run the Python code and build a figure
+        python_repl = PythonREPL()
+        fig = python_repl.run(plotting_code)
+    except Exception as e:
+        st.write("Error running Python code, trying again")
+
+        # If the code fails, try to fix it
+        fix_chain = LLMChain(llm=_llm, prompt=fix_code_prompt, verbose=True)
+        plotting_code_fixed = fix_chain.run([plotting_code, e]).strip("'").strip().strip('"')
+
+        # Run the fixed code
+        python_repl = PythonREPL()
+        fig = python_repl.run(plotting_code_fixed)
+
+    return fig
 
 
 def start(db, llm, sql_prompt, py_prompt, query):
@@ -96,7 +116,7 @@ def start(db, llm, sql_prompt, py_prompt, query):
     """
     answer = run_sql_query(db, llm, sql_prompt, query)
     st.write(answer)
-    fig = run_py_query(llm, py_prompt, query, answer)
+    fig = run_py_query(llm, py_prompt, query, answer["result"])
     st.write("### Plot")
 
     try:
@@ -112,10 +132,11 @@ sf_uri = build_snowflake_uri()
 openai_key = get_openai_key()
 
 # Connect to the LLM
-llm = OpenAI(temperature=0, openai_api_key=openai_key)
+llm = OpenAI(model_name="text-davinci-003", temperature=0, openai_api_key=openai_key)
+# llm = OpenAIChat(temperature=0, openai_api_key=openai_key)
 
 # Connect to the database
-db = create_db_connection(sf_uri)
+db = create_db_connection(sf_uri, [DEFAULT_TABLE])
 
 
 # Streamlit app
@@ -147,10 +168,12 @@ def main():
 
     st.markdown("## Answer")
     if go_button_1:
-        start(db, llm, sql_prompt, few_shot_python_template, defined_query)
+        # start(db, llm, sql_prompt, few_shot_python_template, defined_query)
+        start(db, llm, sql_prompt, python_template, defined_query)
 
     if go_button_2:
-        start(db, llm, sql_prompt, few_shot_python_template, open_query)
+        # start(db, llm, sql_prompt, few_shot_python_template, open_query)
+        start(db, llm, sql_prompt, python_template, open_query)
 
 
 if __name__ == "__main__":

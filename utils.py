@@ -5,9 +5,6 @@ from langchain import SQLDatabase
 import streamlit as st
 
 
-DEFAULT_TABLE = "conversions_demo"
-
-
 class MissingEnvironmentVariableError(Exception):
     pass
 
@@ -29,6 +26,7 @@ def build_snowflake_uri() -> str:
         "SNOWFLAKE_DATABASE",
         "SNOWFLAKE_SCHEMA",
         "SNOWFLAKE_WAREHOUSE",
+        "SNOWFLAKE_ROLE",
     ]
 
     env_vars = {env_var: os.getenv(env_var) for env_var in required_env_vars}
@@ -37,7 +35,12 @@ def build_snowflake_uri() -> str:
         if not env_vars[env_var]:
             raise MissingEnvironmentVariableError(f"{env_var} is missing")
 
-    uri = f"snowflake://{env_vars['SNOWFLAKE_USER']}:{env_vars['SNOWFLAKE_PASSWORD']}@{env_vars['SNOWFLAKE_ACCOUNT']}/{env_vars['SNOWFLAKE_DATABASE']}/?warehouse={env_vars['SNOWFLAKE_WAREHOUSE']}&schema={env_vars['SNOWFLAKE_SCHEMA']}"
+    uri = (
+        f"snowflake://{env_vars['SNOWFLAKE_USER']}:{env_vars['SNOWFLAKE_PASSWORD']}@{env_vars['SNOWFLAKE_ACCOUNT']}/"
+        f"{env_vars['SNOWFLAKE_DATABASE']}/?warehouse={env_vars['SNOWFLAKE_WAREHOUSE']}&schema={env_vars['SNOWFLAKE_SCHEMA']}"
+        f"&role={env_vars['SNOWFLAKE_ROLE']}"
+    )
+
     return uri
 
 
@@ -57,7 +60,7 @@ def get_openai_key() -> Optional[str]:
 
 
 @st.cache_resource
-def create_db_connection(uri: str, include_tables: list = [DEFAULT_TABLE]) -> SQLDatabase:
+def create_db_connection(uri: str, include_tables: list) -> SQLDatabase:
     """
     Creates a Snowflake database connection from a URI.
 
@@ -68,3 +71,43 @@ def create_db_connection(uri: str, include_tables: list = [DEFAULT_TABLE]) -> SQ
     """
     db = SQLDatabase.from_uri(uri, include_tables=include_tables)
     return db
+
+
+def detect_malicious_sql_query(query: str) -> bool:
+    """
+    Detects if a SQL query is malicious by checking if it contains any of the following keywords:
+    - DROP
+    - TRUNCATE
+    - DELETE
+    - ALTER
+    - CREATE
+    - GRANT
+    - REVOKE
+    - RENAME
+    - UPDATE
+    - INSERT
+
+    Args:
+        query: A string containing the SQL query to check.
+
+    Returns:
+        A boolean indicating if the query is malicious.
+    """
+    malicious_keywords = [
+        "DROP",
+        "TRUNCATE",
+        "DELETE",
+        "ALTER",
+        "CREATE",
+        "GRANT",
+        "REVOKE",
+        "RENAME",
+        "UPDATE",
+        "INSERT",
+    ]
+
+    for keyword in malicious_keywords:
+        if keyword in query.upper():
+            return True
+
+    return False
