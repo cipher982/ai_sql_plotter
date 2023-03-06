@@ -1,9 +1,7 @@
 from textwrap import dedent
 
-from langchain.prompts import PromptTemplate, FewShotPromptTemplate
 
-
-EXAMPLES = [
+examples = [
     {
         "query": "The weekly conversion numbers for the past 2 months are 4003, 8678, 9073, 10691, 9807, 9875, 10598, 11457, 7957, and 2239.",
         "answer": dedent(
@@ -45,19 +43,15 @@ EXAMPLES = [
 ]
 
 
-EXAMPLE_TEMPLATE = dedent(
+example_template = dedent(
     """\
     User: {query}
     AI: {answer}
     """
 )
 
-EXAMPLE_PROMPT = PromptTemplate(
-    input_variables=["query", "answer"],
-    template=EXAMPLE_TEMPLATE,
-)
 
-PREFIX = dedent(
+prefix = dedent(
     """\
     Given a set of input data, plot the data in python. Important notes:
     - This must be valid python code
@@ -68,25 +62,26 @@ PREFIX = dedent(
 """
 )
 
-SUFFIX = dedent(
+suffix = dedent(
     """\
     begin!
     User: {query}
     AI: """
 )
 
+fix_code_template = """\
+You have been given a block of Python code that is supposed to perform a certain task, but it might have a bug in it.
+Your task is to analyze the code and identify any bugs or errors that may be preventing it from working correctly.
+Keep in mind the code may have multiple bugs, or may not have any bugs at all. If you think the code is correct,
+you can leave it as is. If you think the code is incorrect, you can fix it.
+Use the following format:
 
-few_shot_python_template = FewShotPromptTemplate(
-    examples=EXAMPLES,
-    example_prompt=EXAMPLE_PROMPT,
-    prefix=PREFIX,
-    suffix=SUFFIX,
-    input_variables=["query"],
-    example_separator="\n\n",
-)
+Original Code: "original code here"
+Error: "error here"
+Fixed Code: "final fixed code here"
 
+Begin!
 
-python_template = PromptTemplate(
-    input_variables=["query"],
-    template=PREFIX + "\n\n" + SUFFIX,
-)
+Original Code: {original_code}
+Error: {error}
+Fixed Code: """

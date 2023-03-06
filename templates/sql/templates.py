@@ -1,7 +1,4 @@
-from langchain.prompts.prompt import PromptTemplate
-
-
-sql_template = """Given an input question, first create a syntactically correct {dialect} query to run, then look at the results of the query and return the answer.
+sql_full = """Given an input question, first create a syntactically correct {dialect} query to run, then look at the results of the query and return the answer.
 Use the following format:
 
 Question: "Question here"
@@ -31,7 +28,16 @@ Begin!
 
 Question: {input}"""
 
-sql_prompt = PromptTemplate(
-    input_variables=["input", "table_info", "dialect"],
-    template=sql_template,
-)
+
+sql_minimal = """Important: all the SQL queries should be run using ONLY {dialect} specific syntax and commands.
+Please make sure all code is specific to {dialect}, and not generic SQL. Only use select statements, do not use create, insert, update, delete, etc.
+
+Extra information:
+- bsin - user id
+- please use current_date() to calculate the current date, do not assume the year is 2021, or any other year you think it is
+- be sure to use quotes around strings, such as 'citibank' or INTERVAL '2 MONTH'
+- try to avoid nested aggregrations
+- use temp tables, instead of subqueries or nested queries
+- do not return too much data, if you are asked for the top 10, only return the top 10
+- for the final answer, be sure to include numeric data in the answer, such as "The top 2 dmas by conversion counts are: 1. New York (2045), 2. Los Angeles (1533)"
+"""

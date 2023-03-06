@@ -1,25 +1,26 @@
 from typing import Any
 
-from langchain import SQLDatabaseChain, SQLDatabase
+from langchain import SQLDatabase
+from langchain.agents import create_sql_agent
+from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.llms import OpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
 import streamlit as st
 
-from templates.fix_python import fix_code_prompt
-from templates.python import python_template
-from templates.sql import sql_prompt
+from templates.python.prompts import example_python_prompt, fix_code_prompt
+from templates.sql.prompts import sql_minimal
 from utils import build_snowflake_uri, get_openai_key, create_db_connection
 
 
 st.set_option("deprecation.showPyplotGlobalUse", False)
 
-DEFAULT_TABLE = "citi_conversions_demo"
+DEFAULT_TABLES = ["citi_conversions_demo", "citi_impressions_demo"]
 
 
 # @st.cache_data
-def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query: str) -> Any:
+def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prefix: str, query: str) -> Any:
     """
     Takes in a natural language question, uses an LLM to parse the question to a SQL
     query, and runs the SQL query on the database.
@@ -27,7 +28,7 @@ def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query
     Args:
         _db: A langchain SQLDatabase object representing the database to run the query on.
         _llm: An OpenAI object containing the API key and other parameters for the OpenAI Language Model.
-        _prompt: A PromptTemplate object representing the prompt to use for the query.
+        _prefix: A string containing the prefix to use for the prompt.
         query: A string containing the question to answer.
 
     Returns:
@@ -37,14 +38,9 @@ def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prompt: PromptTemplate, query
         Exception: If the API call to the OpenAI Language Model fails.
     """
     try:
-        db_chain = SQLDatabaseChain(
-            llm=_llm,
-            database=_db,
-            prompt=_prompt,
-            verbose=True,
-            return_intermediate_steps=True,
-        )
-        out = db_chain(query)
+        toolkit = SQLDatabaseToolkit(db=_db)
+        sql_agent = create_sql_agent(llm=_llm, toolkit=toolkit, prefix=_prefix, verbose=True)
+        out = sql_agent.run(query)
         return out
     except Exception as e:
         raise Exception("OpenAI API call failed with error: " + str(e))
@@ -107,7 +103,7 @@ def start(db, llm, sql_prompt, py_prompt, query):
     Args:
         db: A langchain SQLDatabase object representing the database to run the query on.
         llm: An OpenAI object containing the API key and other parameters for the OpenAI Language Model.
-        sql_prompt: A PromptTemplate object representing the prompt to use for the SQL query.
+        sql_prompt: The the prompt to use for the SQL query.
         py_prompt: A PromptTemplate object representing the prompt to use for the Python code.
         query: A string containing the question to answer.
 
@@ -136,7 +132,7 @@ llm = OpenAI(model_name="text-davinci-003", temperature=0, openai_api_key=openai
 # llm = OpenAIChat(temperature=0, openai_api_key=openai_key)
 
 # Connect to the database
-db = create_db_connection(sf_uri, [DEFAULT_TABLE])
+db = create_db_connection(sf_uri, DEFAULT_TABLES)
 
 
 # Streamlit app
@@ -169,11 +165,11 @@ def main():
     st.markdown("## Answer")
     if go_button_1:
         # start(db, llm, sql_prompt, few_shot_python_template, defined_query)
-        start(db, llm, sql_prompt, python_template, defined_query)
+        start(db, llm, sql_minimal, example_python_prompt, defined_query)
 
     if go_button_2:
         # start(db, llm, sql_prompt, few_shot_python_template, open_query)
-        start(db, llm, sql_prompt, python_template, open_query)
+        start(db, llm, sql_minimal, example_python_prompt, open_query)
 
 
 if __name__ == "__main__":
