@@ -8,6 +8,7 @@ example_python_prompt = PromptTemplate(
     template=example_template,
 )
 
+
 few_shot_python_prompt = FewShotPromptTemplate(
     examples=examples,
     example_prompt=example_python_prompt,

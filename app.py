@@ -9,7 +9,7 @@ from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
 import streamlit as st
 
-from templates.python.prompts import example_python_prompt, fix_code_prompt
+from templates.python.prompts import few_shot_python_prompt, fix_code_prompt
 from templates.sql.prompts import sql_minimal
 from utils import build_snowflake_uri, get_openai_key, create_db_connection
 
@@ -112,7 +112,7 @@ def start(db, llm, sql_prompt, py_prompt, query):
     """
     answer = run_sql_query(db, llm, sql_prompt, query)
     st.write(answer)
-    fig = run_py_query(llm, py_prompt, query, answer["result"])
+    fig = run_py_query(llm, py_prompt, query, answer)
     st.write("### Plot")
 
     try:
@@ -165,11 +165,11 @@ def main():
     st.markdown("## Answer")
     if go_button_1:
         # start(db, llm, sql_prompt, few_shot_python_template, defined_query)
-        start(db, llm, sql_minimal, example_python_prompt, defined_query)
+        start(db, llm, sql_minimal, few_shot_python_prompt, defined_query)
 
     if go_button_2:
         # start(db, llm, sql_prompt, few_shot_python_template, open_query)
-        start(db, llm, sql_minimal, example_python_prompt, open_query)
+        start(db, llm, sql_minimal, few_shot_python_prompt, open_query)
 
 
 if __name__ == "__main__":
