@@ -154,7 +154,7 @@ def main():
             "What are the weekly conversion numbers for the past 2 months?",
             "What are the names and total numbers for the top 5 resources?",
             "What are the top 10 dmas by conversion counts?",
-            "What is the breakdown of return users vs new users?",
+            "What is the breakdown in device types that convert?",
         ],
     )
     go_button_1 = st.button("Go")

@@ -30,14 +30,16 @@ Question: {input}"""
 
 
 sql_minimal = """Important: all the SQL queries should be run using ONLY {dialect} specific syntax and commands.
-Please make sure all code is specific to {dialect}, and not generic SQL. Only use select statements, do not use create, insert, update, delete, etc.
+Please make sure all code is specific to {dialect}, and not generic SQL. Only use select statements, do not alter data.
 
 Extra information:
 - bsin - user id
+- dt is the timestamp column
 - please use current_date() to calculate the current date, do not assume the year is 2021, or any other year you think it is
 - be sure to use quotes around strings, such as 'citibank' or INTERVAL '2 MONTH'
 - try to avoid nested aggregrations
 - use temp tables, instead of subqueries or nested queries
 - do not return too much data, if you are asked for the top 10, only return the top 10
 - for the final answer, be sure to include numeric data in the answer, such as "The top 2 dmas by conversion counts are: 1. New York (2045), 2. Los Angeles (1533)"
+- limit results output if data is too large, try and summarize the data
 """
