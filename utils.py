@@ -69,7 +69,10 @@ def create_db_connection(uri: str, include_tables: list) -> SQLDatabase:
     Returns:
         A `Database` object.
     """
-    db = SQLDatabase.from_uri(uri, include_tables=include_tables)
+    db = SQLDatabase.from_uri(
+        uri,
+        include_tables=include_tables,
+    )
     return db
 
 

@@ -3,14 +3,14 @@ from typing import Any
 from langchain import SQLDatabase
 from langchain.agents import create_sql_agent
 from langchain.agents.agent_toolkits import SQLDatabaseToolkit
-from langchain.llms import OpenAI
+from langchain.llms import OpenAI, OpenAIChat
 from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.utilities import PythonREPL
 import streamlit as st
 
 from templates.python.prompts import few_shot_python_prompt, fix_code_prompt
-from templates.sql.prompts import sql_minimal
+from templates.sql.prompts import sql_minimal, sql_full
 from utils import build_snowflake_uri, get_openai_key, create_db_connection
 
 
@@ -127,10 +127,6 @@ sf_uri = build_snowflake_uri()
 # Get openai key
 openai_key = get_openai_key()
 
-# Connect to the LLM
-llm = OpenAI(model_name="text-davinci-003", temperature=0, openai_api_key=openai_key)
-# llm = OpenAIChat(temperature=0, openai_api_key=openai_key)
-
 # Connect to the database
 db = create_db_connection(sf_uri, DEFAULT_TABLES)
 
@@ -145,6 +141,16 @@ def main():
 
     st.image("./static/logoPrimary.png")
     st.title("ZMP AI SQL Demo")
+
+    # "with" notation
+    with st.sidebar:
+        model_selection = st.radio("Choose a model", ("GPT3", "ChatGPT"))
+        if model_selection == "GPT3":
+            llm = OpenAI(model_name="text-davinci-003", temperature=0, openai_api_key=openai_key)
+        elif model_selection == "ChatGPT":
+            llm = OpenAIChat(temperature=0, openai_api_key=openai_key)
+        else:
+            raise ValueError("Invalid model selection")
 
     st.markdown("## Query")
     # create a drop down menu with pre-defined queries
@@ -165,11 +171,11 @@ def main():
     st.markdown("## Answer")
     if go_button_1:
         # start(db, llm, sql_prompt, few_shot_python_template, defined_query)
-        start(db, llm, sql_minimal, few_shot_python_prompt, defined_query)
+        start(db, llm, sql_full, few_shot_python_prompt, defined_query)
 
     if go_button_2:
         # start(db, llm, sql_prompt, few_shot_python_template, open_query)
-        start(db, llm, sql_minimal, few_shot_python_prompt, open_query)
+        start(db, llm, sql_full, few_shot_python_prompt, open_query)
 
 
 if __name__ == "__main__":

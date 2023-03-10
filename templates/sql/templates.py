@@ -6,10 +6,6 @@ SQLQuery: "SQL Query to run"
 SQLResult: "Result of the SQLQuery"
 Answer: "Final answer here"
 
-Only use the following tables:
-
-{table_info}
-
 If someone asks for the table events, they really mean the crm.events.recs_events table.
 
 Important: all the SQL queries should be run using ONLY Snowflake specific syntax and commands.
@@ -26,7 +22,7 @@ Extra information:
 
 Begin!
 
-Question: {input}"""
+Question: """
 
 
 sql_minimal = """Important: all the SQL queries should be run using ONLY {dialect} specific syntax and commands.
@@ -34,7 +30,7 @@ Please make sure all code is specific to {dialect}, and not generic SQL. Only us
 
 Extra information:
 - bsin - user id
-- dt is the timestamp column
+- use the dt column for any time or date filters.
 - please use current_date() to calculate the current date, do not assume the year is 2021, or any other year you think it is
 - be sure to use quotes around strings, such as 'citibank' or INTERVAL '2 MONTH'
 - try to avoid nested aggregrations
@@ -42,4 +38,5 @@ Extra information:
 - do not return too much data, if you are asked for the top 10, only return the top 10
 - for the final answer, be sure to include numeric data in the answer, such as "The top 2 dmas by conversion counts are: 1. New York (2045), 2. Los Angeles (1533)"
 - limit results output if data is too large, try and summarize the data
+
 """

@@ -4,7 +4,7 @@ from templates.sql.templates import sql_full, sql_minimal
 
 
 sql_prompt = PromptTemplate(
-    input_variables=["input", "table_info", "dialect"],
+    input_variables=["dialect"],
     template=sql_full,
 )
 
