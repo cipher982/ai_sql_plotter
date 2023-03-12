@@ -1,3 +1,4 @@
+import datetime
 from typing import Any
 
 from langchain import SQLDatabase
@@ -5,12 +6,12 @@ from langchain.agents import create_sql_agent
 from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.llms import OpenAI, OpenAIChat
 from langchain.prompts.prompt import PromptTemplate
-from langchain.chains import LLMChain
+from langchain.chains import LLMChain, SQLDatabaseChain
 from langchain.utilities import PythonREPL
 import streamlit as st
 
 from templates.python.prompts import few_shot_python_prompt, fix_code_prompt
-from templates.sql.prompts import sql_minimal, sql_full
+from templates.sql.sql import sql_prompt
 from utils import build_snowflake_uri, get_openai_key, create_db_connection
 
 
@@ -20,7 +21,7 @@ DEFAULT_TABLES = ["citi_conversions_demo", "citi_impressions_demo"]
 
 
 # @st.cache_data
-def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prefix: str, query: str) -> Any:
+def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prefix: str, query: str, use_agent: bool) -> Any:
     """
     Takes in a natural language question, uses an LLM to parse the question to a SQL
     query, and runs the SQL query on the database.
@@ -37,13 +38,32 @@ def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prefix: str, query: str) -> A
     Raises:
         Exception: If the API call to the OpenAI Language Model fails.
     """
-    try:
+    if use_agent:
         toolkit = SQLDatabaseToolkit(db=_db)
-        sql_agent = create_sql_agent(llm=_llm, toolkit=toolkit, prefix=_prefix, verbose=True)
-        out = sql_agent.run(query)
-        return out
-    except Exception as e:
-        raise Exception("OpenAI API call failed with error: " + str(e))
+        agent = create_sql_agent(llm=_llm, toolkit=toolkit, prefix=_prefix, verbose=True)
+        result = agent.run(query)
+    else:
+        chain = SQLDatabaseChain(
+            llm=_llm,
+            database=_db,
+            prompt=_prefix,
+            return_direct=False,
+            return_intermediate_steps=True,
+        )
+        out = chain(query)
+        result = out["result"]
+        sql_code = out["intermediate_steps"][0]
+        st.write("### SQL Code")
+        st.code(sql_code)
+        result_data = out["intermediate_steps"][1]
+        st.write("### Result Data")
+        result_object = eval(result_data)
+        import pandas as pd
+
+        result_df = pd.DataFrame(result_object)
+        st.dataframe(result_df)
+
+    return result
 
 
 # @st.cache_data
@@ -95,7 +115,7 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, sql_query: str, sql_answ
     return fig
 
 
-def start(db, llm, sql_prompt, py_prompt, query):
+def start(db, llm, sql_prompt, py_prompt, query, use_agent):
     """
     Main function for the Streamlit app. Combines the functions run_sql_query and run_py_query,
     and displays the result below.
@@ -110,7 +130,7 @@ def start(db, llm, sql_prompt, py_prompt, query):
     Returns:
         None
     """
-    answer = run_sql_query(db, llm, sql_prompt, query)
+    answer = run_sql_query(db, llm, sql_prompt, query, use_agent)
     st.write(answer)
     fig = run_py_query(llm, py_prompt, query, answer)
     st.write("### Plot")
@@ -151,6 +171,7 @@ def main():
             llm = OpenAIChat(temperature=0, openai_api_key=openai_key)
         else:
             raise ValueError("Invalid model selection")
+        use_agent = st.checkbox("Use Agent", value=False)
 
     st.markdown("## Query")
     # create a drop down menu with pre-defined queries
@@ -170,12 +191,10 @@ def main():
 
     st.markdown("## Answer")
     if go_button_1:
-        # start(db, llm, sql_prompt, few_shot_python_template, defined_query)
-        start(db, llm, sql_full, few_shot_python_prompt, defined_query)
+        start(db, llm, sql_prompt, few_shot_python_prompt, defined_query, use_agent)
 
     if go_button_2:
-        # start(db, llm, sql_prompt, few_shot_python_template, open_query)
-        start(db, llm, sql_full, few_shot_python_prompt, open_query)
+        start(db, llm, sql_prompt, few_shot_python_prompt, open_query, use_agent)
 
 
 if __name__ == "__main__":
