@@ -8,6 +8,7 @@ from langchain.llms import OpenAI, OpenAIChat
 from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain, SQLDatabaseChain
 from langchain.utilities import PythonREPL
+import pandas as pd
 import streamlit as st
 
 from templates.python.prompts import few_shot_python_prompt, fix_code_prompt
@@ -56,10 +57,8 @@ def run_sql_query(_db: SQLDatabase, _llm: OpenAI, _prefix: str, query: str, use_
         st.write("### SQL Code")
         st.code(sql_code)
         result_data = out["intermediate_steps"][1]
-        st.write("### Result Data")
+        st.write("### Data")
         result_object = eval(result_data)
-        import pandas as pd
-
         result_df = pd.DataFrame(result_object)
         st.dataframe(result_df)
 
@@ -94,7 +93,7 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, sql_query: str, sql_answ
         raise Exception("OpenAI API call failed with error: " + str(e))
 
     # Show the Python code that was generated
-    st.write("### Code")
+    st.write("### Python Code")
     st.code(plotting_code)
 
     try:
@@ -131,7 +130,9 @@ def start(db, llm, sql_prompt, py_prompt, query, use_agent):
         None
     """
     answer = run_sql_query(db, llm, sql_prompt, query, use_agent)
+    st.write("### Answer")
     st.write(answer)
+
     fig = run_py_query(llm, py_prompt, query, answer)
     st.write("### Plot")
 
@@ -139,16 +140,6 @@ def start(db, llm, sql_prompt, py_prompt, query, use_agent):
         st.pyplot(fig)
     except TypeError as e:
         st.write("Error displaying plot, try a different question: \n" + str(e))
-
-
-# Grab connection details
-sf_uri = build_snowflake_uri()
-
-# Get openai key
-openai_key = get_openai_key()
-
-# Connect to the database
-db = create_db_connection(sf_uri, DEFAULT_TABLES)
 
 
 # Streamlit app
@@ -162,6 +153,15 @@ def main():
     st.image("./static/logoPrimary.png")
     st.title("ZMP AI SQL Demo")
 
+    # Grab connection details
+    sf_uri = build_snowflake_uri()
+
+    # Get openai key
+    openai_key = get_openai_key()
+
+    # Connect to the database
+    db = create_db_connection(sf_uri, DEFAULT_TABLES)
+
     # "with" notation
     with st.sidebar:
         model_selection = st.radio("Choose a model", ("GPT3", "ChatGPT"))
@@ -171,9 +171,16 @@ def main():
             llm = OpenAIChat(temperature=0, openai_api_key=openai_key)
         else:
             raise ValueError("Invalid model selection")
-        use_agent = st.checkbox("Use Agent", value=False)
 
-    st.markdown("## Query")
+        use_agent = st.checkbox("Use Agent (experimental)", value=False)
+
+        # Configure DB connections
+        tables_to_use = st.multiselect(
+            "Choose tables to use",
+            DEFAULT_TABLES,
+        )
+
+    st.markdown("# Query")
     # create a drop down menu with pre-defined queries
     defined_query = st.selectbox(
         "Select a pre-defined query",
@@ -189,7 +196,7 @@ def main():
     open_query = st.text_input("Or, enter a custom query")
     go_button_2 = st.button("Go ")
 
-    st.markdown("## Answer")
+    st.markdown("# Results")
     if go_button_1:
         start(db, llm, sql_prompt, few_shot_python_prompt, defined_query, use_agent)
 
