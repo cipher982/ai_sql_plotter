@@ -96,25 +96,31 @@ def run_py_query(_llm: OpenAI, _prompt: PromptTemplate, sql_query: str, sql_answ
     st.write("### Python Code")
     st.code(plotting_code)
 
+    # Run the Python code and handle potential errors
+    python_repl = PythonREPL()
+    fig = None
     try:
-        # Run the Python code and build a figure
-        python_repl = PythonREPL()
         fig = python_repl.run(plotting_code)
     except Exception as e:
-        st.write("Error running Python code, trying again")
+        st.write("Error running Python code, trying to fix it")
 
-        # If the code fails, try to fix it
-        fix_chain = LLMChain(llm=_llm, prompt=fix_code_prompt, verbose=True)
+        fix_prompt = PromptTemplate("Fix the following Python code error:")
+        fix_chain = LLMChain(llm=_llm, prompt=fix_prompt, verbose=True)
         plotting_code_fixed = fix_chain.run([plotting_code, e]).strip("'").strip().strip('"')
 
-        # Run the fixed code
-        python_repl = PythonREPL()
         fig = python_repl.run(plotting_code_fixed)
 
     return fig
 
 
-def start(db, llm, sql_prompt, py_prompt, query, use_agent):
+def start(
+    db: SQLDatabase,
+    llm: OpenAI,
+    sql_prompt: str,
+    py_prompt: PromptTemplate,
+    query: str,
+    use_agent: bool,
+) -> None:
     """
     Main function for the Streamlit app. Combines the functions run_sql_query and run_py_query,
     and displays the result below.
@@ -125,6 +131,7 @@ def start(db, llm, sql_prompt, py_prompt, query, use_agent):
         sql_prompt: The the prompt to use for the SQL query.
         py_prompt: A PromptTemplate object representing the prompt to use for the Python code.
         query: A string containing the question to answer.
+        use_agent: A boolean indicating whether to use the agent or the chain.
 
     Returns:
         None
@@ -142,6 +149,13 @@ def start(db, llm, sql_prompt, py_prompt, query, use_agent):
         st.write("Error displaying plot, try a different question: \n" + str(e))
 
 
+# Grab connection details
+sf_uri = build_snowflake_uri()
+
+# Get openai key
+openai_key = get_openai_key()
+
+
 # Streamlit app
 def main():
     """
@@ -153,32 +167,37 @@ def main():
     st.image("./static/logoPrimary.png")
     st.title("ZMP AI SQL Demo")
 
-    # Grab connection details
-    sf_uri = build_snowflake_uri()
-
-    # Get openai key
-    openai_key = get_openai_key()
-
-    # Connect to the database
-    db = create_db_connection(sf_uri, DEFAULT_TABLES)
-
-    # "with" notation
     with st.sidebar:
+        # Configure DB connections
+        tables_to_use = st.multiselect(
+            label="Choose tables to use",
+            default=DEFAULT_TABLES,
+            options=DEFAULT_TABLES,
+        )
+
+        # Configure model parameters
+        use_agent = st.checkbox("Use Agent (experimental)", value=False)
         model_selection = st.radio("Choose a model", ("GPT3", "ChatGPT"))
+        temperature = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.0)
+
         if model_selection == "GPT3":
-            llm = OpenAI(model_name="text-davinci-003", temperature=0, openai_api_key=openai_key)
+            llm = OpenAI(
+                model_name="text-davinci-003",
+                temperature=temperature,
+                openai_api_key=openai_key,
+                streaming=True,
+            )
         elif model_selection == "ChatGPT":
-            llm = OpenAIChat(temperature=0, openai_api_key=openai_key)
+            llm = OpenAIChat(
+                temperature=temperature,
+                openai_api_key=openai_key,
+                streaming=True,
+            )
         else:
             raise ValueError("Invalid model selection")
 
-        use_agent = st.checkbox("Use Agent (experimental)", value=False)
-
-        # Configure DB connections
-        tables_to_use = st.multiselect(
-            "Choose tables to use",
-            DEFAULT_TABLES,
-        )
+    # Connect to the database
+    db = create_db_connection(sf_uri, tables_to_use)
 
     st.markdown("# Query")
     # create a drop down menu with pre-defined queries
